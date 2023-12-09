@@ -3,6 +3,7 @@ const router = require('express-promise-router')()
 const passport = require('passport')
 const { celebrate, Joi, Segments } = require('celebrate')
 const User = require('../models/user')
+const { ensureNoActiveSession, ensureAuth } = require('../middlewares/auth')
 
 const registerUserValidator = celebrate({
   [Segments.BODY]: Joi.object().keys({
@@ -14,7 +15,9 @@ const registerUserValidator = celebrate({
   })
 })
 
-router.post('/register',
+router.post(
+  '/register',
+  ensureNoActiveSession,
   registerUserValidator,
   async (req, res) => {
     const newUser = new User(req.body.user)
@@ -26,6 +29,7 @@ router.post('/register',
 
 router.post(
   '/login',
+  ensureNoActiveSession,
   passport.authenticate('local', {
     successRedirect: '/api/auth/authenticated',
     failureRedirect: '/api/auth/unauthorized'
@@ -40,16 +44,19 @@ router.get('/unauthorized', async (req, res) => {
   throw createError(401)
 })
 
-router.post('/logout', (req, res, next) => {
-  req.session.destroy(err => {
-    if (err) {
-      throw createError(500, err.message)
-    }
-    req.logout((err) => {
-      if (err) { return next(err) }
-      res.sendStatus(200)
+router.post(
+  '/logout',
+  ensureAuth,
+  (req, res, next) => {
+    req.session.destroy(err => {
+      if (err) {
+        throw createError(500, err.message)
+      }
+      req.logout((err) => {
+        if (err) { return next(err) }
+        res.sendStatus(200)
+      })
     })
   })
-})
 
 module.exports = router

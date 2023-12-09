@@ -1,15 +1,15 @@
 const router = require('express-promise-router')()
 const { celebrate, Joi, Segments } = require('celebrate')
 const User = require('../models/user')
-const { isLoggedIn } = require('../middlewares/auth')
+const { ensureAuth } = require('../middlewares/auth')
 const upload = require('../middlewares/upload')
 
-router.get('/',
-  isLoggedIn,
+router.get(
+  '/',
+  ensureAuth,
   async (req, res) => {
     res.json(req.user)
-  }
-)
+  })
 
 const updateProfileValidator = celebrate({
   [Segments.BODY]: Joi.object().keys({
@@ -20,14 +20,14 @@ const updateProfileValidator = celebrate({
   })
 })
 
-router.put('/',
-  isLoggedIn,
+router.put(
+  '/',
+  ensureAuth,
   updateProfileValidator,
   async (req, res) => {
     await User.updateOne(req.user._id, req.body.profile)
     res.sendStatus(200)
-  }
-)
+  })
 
 const changePasswordValidator = celebrate({
   [Segments.BODY]: Joi.object().keys({
@@ -36,8 +36,9 @@ const changePasswordValidator = celebrate({
   })
 })
 
-router.patch('/change-password',
-  isLoggedIn,
+router.patch(
+  '/change-password',
+  ensureAuth,
   changePasswordValidator,
   async (req, res) => {
     const user = req.user
@@ -45,11 +46,11 @@ router.patch('/change-password',
       user.save()
     })
     res.sendStatus(200)
-  }
-)
+  })
 
-router.patch('/upload/avatar/',
-  isLoggedIn,
+router.patch(
+  '/upload/avatar/',
+  ensureAuth,
   upload.single('avatar'),
   async (req, res) => {
     const user = await User.findById(req.user._id)
@@ -57,13 +58,16 @@ router.patch('/upload/avatar/',
     res.sendStatus(200)
   })
 
-router.delete('/', isLoggedIn, async (req, res, next) => {
-  await req.user.delete()
-  req.logout((err) => {
-    if (err) { return next(err) }
+router.delete(
+  '/',
+  ensureAuth,
+  async (req, res, next) => {
+    await req.user.delete()
+    req.logout((err) => {
+      if (err) { return next(err) }
+      res.sendStatus(200)
+    })
     res.sendStatus(200)
   })
-  res.sendStatus(200)
-})
 
 module.exports = router

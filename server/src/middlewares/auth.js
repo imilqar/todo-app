@@ -1,11 +1,16 @@
 const createError = require('http-errors')
 
-function isLoggedIn (req, res, next) {
-  if (req.isAuthenticated()) return next()
+function ensureNoActiveSession (req, res, next) {
+  if (req.isAuthenticated()) return createError.BadRequest()
+  next()
+}
 
-  next(createError.Unauthorized())
+function ensureAuth (req, res, next) {
+  if (!req.isAuthenticated()) return next(createError.Unauthorized())
+  next()
 }
 
 module.exports = {
-  isLoggedIn,
+  ensureAuth,
+  ensureNoActiveSession
 }
