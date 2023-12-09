@@ -27,9 +27,20 @@ router.post(
   }
 )
 
+async function isAccountDeleted (req, res, next) {
+  const isDeleted = await User.checkDeleted(req.body.email)
+
+  if (isDeleted) {
+    throw createError(401)
+  }
+
+  next()
+}
+
 router.post(
   '/login',
   ensureNoActiveSession,
+  isAccountDeleted,
   passport.authenticate('local', {
     successRedirect: '/api/auth/authenticated',
     failureRedirect: '/api/auth/unauthorized'
